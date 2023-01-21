@@ -9,12 +9,16 @@ import {
   Box,
   InputLabel,
   MenuItem,
-  FormControl
+  FormControl,
+  Checkbox,
+  ListItemIcon,
+  ListItemText,
+  Switch,
+  FormControlLabel
 
 } from "@material-ui/core";
+import { MenuProps, useStyles, options } from "./Utils";
 
-// import FormHelperText from '@mui/material/FormHelperText';
-// import FormControl from '@mui/material/FormControl';
 
 import * as React from "react";
 import { useState } from "react";
@@ -23,6 +27,7 @@ const FORM_ENDPOINT = "http://localhost:5000/trade/"
 
 export default function App() {
 
+  const classes = useStyles();
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
 
@@ -33,7 +38,19 @@ export default function App() {
   const [stopLoss, setStopLoss] = useState(0.10);
   const [nextEntryStep, setNextEntryStep] = useState(0.5);
   const [marginType, setMarginType] = useState("ISOLATED");
-  const [capitalSteps, setCapitalSteps] = useState("");
+  const [capitalSteps, setCapitalSteps] = useState([]);
+
+  const isAllSelected =
+    options.length > 0 && capitalSteps.length === options.length;
+
+  const handleChange = (event) => {
+    const value = event.target.value;
+    if (value[value.length - 1] === "all") {
+      setCapitalSteps(capitalSteps.length === options.length ? [] : options);
+      return;
+    }
+    setCapitalSteps(value);
+  };
 
 
   let handleSubmit = async (e) => {
@@ -48,14 +65,7 @@ export default function App() {
           "take_profit": takeProfit,
           "stop_loss": stopLoss,
           "next_entry_step": nextEntryStep,
-          "capital_steps": [
-            50,
-            100,
-            150,
-            200,
-            250,
-            300
-          ]
+          "capital_steps": capitalSteps
         },
         "test_net": true
       })
@@ -87,15 +97,14 @@ export default function App() {
 
       <Typography variant="h5">Binance BOT</Typography>
 
-      <form  onSubmit={handleSubmit}>
-        <FormControl sx={{ m: 1, minWidth: 200 }}>
+      <form onSubmit={handleSubmit}>
+        <FormControl className={classes.formControl}>
           <InputLabel id="select-market">Market</InputLabel>
           <Select
             labelId="select-market"
             id="select-market"
             value={market}
             label="Market"
-            style={{ width: "300px", margin: "20px" }}
             onChange={(e) => setMarket(e.target.value)}
           >
             <MenuItem value="BNBUSDT">BNBUSDT</MenuItem>
@@ -105,14 +114,13 @@ export default function App() {
         </FormControl>
         <br />
 
-        <FormControl sx={{ m: 1, minWidth: 200 }}>
+        <FormControl className={classes.formControl}>
           <InputLabel id="select-margin-type">Margin Type</InputLabel>
           <Select
             labelId="select-margin-type"
             id="select-margin-type"
             value={marginType}
             label="Margin Type"
-            style={{ width: "300px", margin: "20px" }}
             onChange={(e) => setMarginType(e.target.value)}
           >
             <MenuItem value="ISOLATED">ISOLATED</MenuItem>
@@ -161,6 +169,57 @@ export default function App() {
           onChange={(e) => setNextEntryStep(e.target.value)}
         />
         <br />
+
+        <FormControl className={classes.formControl}>
+          <InputLabel id="mutiple-select-label">Capital Entries</InputLabel>
+          <Select
+            labelId="mutiple-select-label"
+            multiple
+            value={capitalSteps}
+            onChange={handleChange}
+            renderValue={(capitalSteps) => capitalSteps.join(", ")}
+            MenuProps={MenuProps}
+          >
+            <MenuItem
+              value="all"
+              classes={{
+                root: isAllSelected ? classes.selectedAll : ""
+              }}
+            >
+              <ListItemIcon>
+                <Checkbox
+                  classes={{ indeterminate: classes.indeterminateColor }}
+                  checked={isAllSelected}
+                  indeterminate={
+                    capitalSteps.length > 0 && capitalSteps.length < options.length
+                  }
+                />
+              </ListItemIcon>
+              <ListItemText
+                classes={{ primary: classes.selectAllText }}
+                primary="Select All"
+              />
+            </MenuItem>
+            {options.map((option) => (
+              <MenuItem key={option} value={option}>
+                <ListItemIcon>
+                  <Checkbox checked={capitalSteps.indexOf(option) > -1} />
+                </ListItemIcon>
+                <ListItemText primary={option} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <br />
+
+        <FormControlLabel disabled control=
+          {
+            <Switch
+              checked={checked}
+              onChange={handleChange}
+              inputProps={{ 'aria-label': 'controlled' }}
+            />
+          } label="Disabled" />
 
         <Button variant="contained" color="primary" type="Submit">
           Start Bot
