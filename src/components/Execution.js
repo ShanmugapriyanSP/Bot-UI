@@ -47,7 +47,7 @@ function Execution() {
                     "take_profit": takeProfit,
                     "stop_loss": stopLoss,
                     "next_entry_step": nextEntryStep,
-                    "capital_steps": capitalSteps
+                    "capital_steps": capitalSteps.split(",").map((e) => parseInt(e))
                 },
                 "test_net": testNet
             })
