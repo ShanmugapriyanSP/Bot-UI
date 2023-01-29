@@ -16,6 +16,7 @@ import {
 import { Alert } from "@material-ui/lab"
 import { useState, useEffect } from "react";
 import CancelIcon from '@mui/icons-material/Cancel';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 const FORM_ENDPOINT = "http://localhost:5000/trade/"
 
@@ -23,53 +24,67 @@ function RunningStatus(props) {
 
     const [runningBots, setRunningBots] = useState([]);
     const [runningStatusMessage, setRunningStatusMessage] = useState("")
-    const [message, setMessage] = useState("")
+    const [deleteMessage, setDeleteMessage] = useState("")
     const [open, setOpen] = useState(true);
 
+    const fetchData = async () => {
+        let res = await fetch(FORM_ENDPOINT + "check", {
+            method: "GET",
+        });
+        let resJson = await res.json();
+        if (resJson.bots.length > 0) {
+            setRunningBots(resJson.bots)
+            setRunningStatusMessage("")
+        }
+        else {
+            setRunningStatusMessage(resJson.message)
+            setRunningBots([])
+        }
+    }
+
     useEffect(() => {
-        (async () => {
-            let res = await fetch(FORM_ENDPOINT + "check", {
-                method: "GET",
-            });
-            let resJson = await res.json();
-            console.log(resJson);
-            if (resJson.bots.length > 0) {
-                setRunningBots(resJson.bots)
-                setRunningStatusMessage("")
-            }
-            else {
-                setRunningStatusMessage(resJson.message)
-                setRunningBots([])
-            }
-        })();
-    }, [props.triggerMessage])
+        fetchData();
+    }, [props.triggerMessage, deleteMessage])
 
+    function handleRefresh() {
+        fetchData();
+        setOpen(true);
+        setDeleteMessage("");
+    }
 
-    let handleStop = async (market) => {
-        // e.preventDefault();
+    let handleStop = async (market, region) => {
         try {
 
-            let res = await fetch(FORM_ENDPOINT + "stop/" + market, {
+            let res = await fetch(FORM_ENDPOINT + "stop?market=" + market + "&region=" + region, {
                 method: "DELETE",
             });
             let resJson = await res.json();
-            console.log(resJson)
             if (res.status === 200) {
-                setMessage(resJson.message);
+                setDeleteMessage(resJson.message);
             } else {
-                setMessage(resJson.message);
+                setDeleteMessage(resJson.message);
             }
         } catch (err) {
             console.log(err);
         }
+        setOpen(true);
     };
 
     return (
         <>
             <Grid item xs={12} sm={6}>
-                <Card variant="outlined" style={{ width: "70%", height: "100%" }}>
+                <Card variant="outlined" style={{ width: "80%", height: "100%" }}>
                     <CardContent>
-                        <Typography variant="h5">Running Status</Typography>
+                        <Typography variant="h5">Bot Status</Typography>
+                        <br />
+                        <Button sx={{ marginLeft: "auto" }}                            
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={() => handleRefresh()}
+                            endIcon={<RefreshIcon />}>
+                            Refresh
+                        </Button>
                         <br />
                         {
                             runningBots.length > 0 &&
@@ -79,7 +94,8 @@ function RunningStatus(props) {
                                         <TableRow>
                                             <TableCell>Futures</TableCell>
                                             <TableCell align="center">Region</TableCell>
-                                            <TableCell align="center">Cancel</TableCell>
+                                            <TableCell align="center">Status</TableCell>
+                                            <TableCell align="center">Action</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -91,9 +107,17 @@ function RunningStatus(props) {
                                                 <TableCell component="th" scope="row">
                                                     {bot.market}
                                                 </TableCell>
-                                                <TableCell align="center">{bot.test_net ? "Test Net" : "Live"}</TableCell>
+                                                <TableCell align="center">{bot.region}</TableCell>
+                                                <TableCell align="center">{bot.status}</TableCell>
                                                 <TableCell align="center">
-                                                    <Button type="button" variant="contained" color="secondary" onClick={() => handleStop(bot.market)} size="small" endIcon={<CancelIcon />}>
+                                                    <Button
+                                                        type="button"
+                                                        variant="contained"
+                                                        color="secondary"
+                                                        disabled={bot.status !== "RUNNING"}
+                                                        onClick={() => handleStop(bot.market, bot.region)}
+                                                        size="small"
+                                                        endIcon={<CancelIcon />}>
                                                         Stop Bot
                                                     </Button>
                                                 </TableCell>
@@ -111,10 +135,10 @@ function RunningStatus(props) {
             </Grid>
             <div className="trigger-message">
                 {
-                    message ?
+                    deleteMessage ?                    
                         <Snackbar autoHideDuration={6000} open={open} onClose={() => setOpen(false)}>
-                            <Alert severity="info" sx={{ width: '100%' }}>
-                                {message}
+                            <Alert severity="error" sx={{ width: '100%' }}>
+                                {deleteMessage}
                             </Alert>
                         </Snackbar>
                         : null
