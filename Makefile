@@ -6,3 +6,9 @@ run:
 
 kill:
 	docker rm bot-ui-instance -f
+
+push:
+	docker push spshan/bot-ui
+
+list:
+	docker ps -a
